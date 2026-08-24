@@ -1,0 +1,7 @@
+interface:
+  display_name: "Search Finance Data"
+  short_description: "Find and download free finance data"
+  default_prompt: "Use $search-finance-data to find and download a public finance dataset for my research question."
+
+policy:
+  allow_implicit_invocation: true
