@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://empirical-finance-data.local/schemas/evidence_package.schema.json",
+  "type": "object",
+  "required": ["schema_version", "spec_id", "generated_at", "records"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "spec_id": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "records": {"type": "array", "items": {"$ref": "provenance.schema.json"}}
+  }
+}

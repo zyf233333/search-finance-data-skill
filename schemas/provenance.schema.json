@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://empirical-finance-data.local/schemas/provenance.schema.json",
+  "type": "object",
+  "required": ["variable_id", "concept", "source", "dataset", "raw_fields"],
+  "properties": {
+    "variable_id": {"type": "string"},
+    "concept": {"type": "string"},
+    "source": {"type": "string"},
+    "dataset": {"type": "string"},
+    "raw_fields": {"type": "array", "items": {"type": "string"}},
+    "formula": {"type": ["string", "null"]},
+    "frequency": {"type": ["string", "null"]},
+    "downloaded_at": {"type": ["string", "null"]},
+    "documentation_url": {"type": ["string", "null"]}
+  }
+}

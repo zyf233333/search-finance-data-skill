@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://empirical-finance-data.local/schemas/research_data_spec.schema.json",
+  "type": "object",
+  "required": ["research_question", "variables", "spec_id", "status", "created_at", "updated_at"],
+  "properties": {
+    "research_question": {"type": "string", "minLength": 1},
+    "market": {"type": ["string", "null"]},
+    "period_start": {"type": ["integer", "null"]},
+    "period_end": {"type": ["integer", "null"]},
+    "frequency": {"type": ["string", "null"]},
+    "unit": {"type": ["string", "null"]},
+    "variables": {"type": "array", "items": {"$ref": "#/$defs/variable"}},
+    "spec_id": {"type": "string", "pattern": "^rds_[a-f0-9]+$"},
+    "status": {"enum": ["unresolved", "resolved", "verified", "failed"]},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "$defs": {
+    "variable": {
+      "type": "object",
+      "required": ["concept", "role", "raw_variables", "status"],
+      "properties": {
+        "concept": {"type": "string", "minLength": 1},
+        "role": {"type": "string", "minLength": 1},
+        "measurement": {"type": ["string", "null"]},
+        "raw_variables": {"type": "array", "items": {"type": "string"}},
+        "status": {"enum": ["unresolved", "resolved", "verified", "failed"]},
+        "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "notes": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

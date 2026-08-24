@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://empirical-finance-data.local/schemas/access_state.schema.json",
+  "type": "object",
+  "required": ["provider", "access_type", "authenticated", "session_valid", "subscription", "methods", "next_action", "checked_at"],
+  "properties": {
+    "provider": {"type": "string"},
+    "access_type": {"enum": ["institutional", "account", "browser_session"]},
+    "authenticated": {"type": "boolean"},
+    "session_valid": {"type": "boolean"},
+    "subscription": {"type": "string"},
+    "methods": {"type": "array", "items": {"type": "string"}},
+    "next_action": {"type": "string"},
+    "checked_at": {"type": "string"},
+    "details": {"type": "object"}
+  }
+}
