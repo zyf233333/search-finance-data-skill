@@ -1,0 +1,542 @@
+实证金融研究数据获取 Skill —— 产品需求文档（PRD）
+
+版本：V1.0
+日期：2026-08-22
+
+一、项目名称
+Empirical Finance Data Skill
+中文名：实证金融研究数据获取助手
+
+二、项目背景
+高校学生在完成金融、会计、经济学相关实证论文时，通常需要从多个数据库获取研究数据，例如股票收益、财务报表、Fama-French 因子、宏观经济指标、分析师预测、公司治理、专利、文本等。
+
+当前痛点主要包括：
+1. 学生往往不知道某个经济学变量对应哪个数据库、具体表和字段。
+2. 同一个变量可能存在免费、学校订阅、商业付费等多种数据源，学生缺乏成本判断能力。
+3. WRDS、CSMAR、RESSET、CNRDS 等数据库的访问方式不同，存在校园网、CARSI、VPN、MFA、账号登录、网页导出等复杂流程。
+4. 传统 AI 往往只能“推荐数据库”，不能确认真实可用性，更不能完成下载、字段核验和数据整理。
+5. 金融数据存在前视偏差、幸存者偏差、时间错配、证券代码变更、退市样本遗漏等专业问题。
+6. 学生预算有限，应尽可能优先使用免费、官方、学术认可的数据源。
+
+因此，本项目拟建设一个面向学生的、研究需求驱动的金融数据 Skill：根据论文研究问题自动识别数据需求，寻找最低成本的真实数据源，并在合法授权范围内尽可能完成数据获取、校验、整理与文档化。
+
+三、产品目标
+本 Skill 的核心目标不是“下载数据”，而是建立完整的研究数据获取链路：
+
+研究问题
+→ 研究设计解析
+→ 变量识别
+→ 数据源匹配
+→ 成本与权限判断
+→ 数据获取
+→ 数据质量与金融偏差检查
+→ 数据整理
+→ 可复现输出
+
+核心原则：
+1. 免费优先。
+2. 官方数据源优先。
+3. 学术认可度优先。
+4. 学校已购买权限优先于个人付费。
+5. 不绕过认证、不破解权限、不突破数据库授权限制。
+6. 所有数据来源必须可追溯。
+7. 所有关键数据处理过程应尽量可复现。
+
+四、目标用户
+主要用户：
+1. 金融学本科生。
+2. 金融、会计、经济学硕士生。
+3. MBA、金融工程、数量金融学生。
+4. 初次开展实证研究的博士生。
+5. 需要快速寻找论文数据的研究助理。
+
+典型特点：
+- 数据库经验有限。
+- 编程水平差异较大。
+- 预算有限。
+- 可能拥有学校购买的数据库权限。
+- 更关注“能不能完成论文”而非构建复杂数据基础设施。
+
+五、核心使用场景
+
+场景一：输入论文题目
+用户输入：
+“研究企业数字化转型对融资约束的影响。”
+
+系统输出：
+- 研究对象：上市公司。
+- 因变量：融资约束。
+- 候选测度：SA、KZ、WW 指数。
+- 核心解释变量：数字化转型指标。
+- 控制变量：Size、ROA、Leverage、Growth、Cash、Age 等。
+- 推荐数据源及字段。
+- 免费替代方案。
+- 学校数据库方案。
+- 数据下载与合并方案。
+
+场景二：输入变量
+用户输入：
+“我需要美国 Fama-French 三因子月度数据，2000—2025 年。”
+
+系统应优先选择：
+Kenneth French Data Library
+→ 免费
+→ 官方学术来源
+→ 无需登录
+→ 自动下载并整理。
+
+场景三：输入已有论文
+用户提供论文 PDF 或论文题目。
+
+系统提取：
+- Data/Sample 部分。
+- 变量构造。
+- 使用数据库。
+- 样本区间。
+- 数据频率。
+- 合并方法。
+- 可获得的 replication package。
+- 免费替代方案。
+
+场景四：学校数据库权限
+用户需要 CSMAR、RESSET 或 WRDS 数据。
+
+系统：
+- 检查是否存在 API。
+- 检查学校订阅权限。
+- 引导用户完成校园网、VPN、CARSI 或 MFA 登录。
+- 在用户已有合法权限的前提下完成查询和导出。
+- 不绕过数据库权限控制。
+
+六、功能架构
+
+模块一：Research Design Parser
+功能：
+1. 识别研究问题。
+2. 判断 observation unit。
+3. 识别样本国家/地区。
+4. 识别时间区间。
+5. 识别数据频率。
+6. 提取因变量。
+7. 提取核心解释变量。
+8. 提取控制变量。
+9. 提取工具变量。
+10. 提取固定效应。
+11. 判断识别策略。
+
+输出：
+标准 Research Design JSON / Variable Dictionary。
+
+模块二：Variable Dictionary
+为每个变量记录：
+- 变量名称。
+- 经济含义。
+- 常见学术定义。
+- 公式。
+- 所需原始字段。
+- 时间频率。
+- 数据库来源。
+- 替代定义。
+- 代表性参考文献。
+
+示例：
+Firm Size
+- 定义1：ln(Total Assets)
+- 定义2：ln(Market Capitalization)
+- Compustat：AT
+- CRSP：PRC × SHROUT
+- CSMAR：总资产、市值字段
+- RESSET：总资产、市值字段
+
+模块三：Dataset Knowledge Graph
+构建以下关系：
+
+Economic Construct
+→ Variable
+→ Dataset
+→ Database
+→ Table
+→ Field
+→ Identifier
+→ Access Method
+→ Cost
+→ Academic Evidence
+
+每个数据源记录：
+- 数据库名称。
+- 数据集名称。
+- 表名。
+- 字段。
+- 数据频率。
+- 时间覆盖。
+- 地域覆盖。
+- 标识符。
+- 是否 point-in-time。
+- 是否包含退市样本。
+- 官方网址。
+- API 情况。
+- 下载方式。
+- 费用类型。
+- 学术认可度。
+- 许可限制。
+
+模块四：Cost-aware Dataset Resolver
+系统根据成本和质量自动排序候选数据源。
+
+推荐优先级：
+
+Tier A：免费官方数据
+例如：
+- Kenneth French Data Library
+- SEC EDGAR
+- FRED / ALFRED
+- World Bank
+- IMF
+- OECD
+- FEC
+- PatentsView
+
+Tier B：免费学术数据
+例如：
+- Open Source Asset Pricing
+- 作者公开 replication data
+- 学术机构公开数据库
+
+Tier C：免费开源数据接口
+例如：
+- AKShare
+- 其他公开 API 聚合工具
+
+Tier D：学校订阅数据库
+例如：
+- WRDS
+- CRSP
+- Compustat
+- IBES
+- ExecuComp
+- CSMAR
+- RESSET
+- CNRDS
+
+Tier E：个人或机构商业数据库
+例如：
+- Bloomberg
+- Refinitiv
+- Wind 等
+
+排序指标包括：
+1. Variable Fit。
+2. 时间覆盖。
+3. 样本覆盖。
+4. 学术认可度。
+5. 可复现性。
+6. Documentation。
+7. Access Difficulty。
+8. Cost。
+9. Licensing。
+
+模块五：Literature Evidence Agent
+功能：
+1. 搜索与研究问题最接近的实证论文。
+2. 提取论文的数据来源。
+3. 提取变量构造。
+4. 提取样本范围。
+5. 提取数据库组合。
+6. 搜索 replication package。
+7. 搜索 GitHub / OSF / Dataverse 等代码和数据说明。
+
+目的：
+证明推荐的数据确实被学术研究使用，而不是仅依靠网页关键词匹配。
+
+模块六：Access Resolver
+针对不同数据库判断获取方式。
+
+类型一：无需登录
+直接 API 或文件下载。
+
+类型二：API Key
+用户自行配置 API Key。
+
+类型三：学校订阅 + API
+例如 WRDS、部分 CSMAR 数据。
+
+类型四：学校订阅 + Web Session
+例如部分只能网页操作的数据库。
+
+类型五：CARSI / 校园 VPN / MFA
+由用户自行完成身份认证，Skill 仅在授权会话内执行正常查询和导出。
+
+原则：
+- 不保存用户明文密码。
+- 不破解验证码。
+- 不绕过 MFA。
+- 不伪造学校 IP。
+- 不突破数据库下载限制。
+- 不利用逆向工程扩大用户本来没有的权限。
+
+模块七：Data Acquisition Agent
+主要职责：
+1. 调用 API。
+2. 执行公开文件下载。
+3. 执行数据库查询。
+4. 调用 MCP / Connector。
+5. 在合法授权会话内进行网页导出。
+6. 支持大数据分批下载。
+7. 自动保存 raw 文件。
+8. 记录下载日志。
+
+建议首批 Connector：
+- Kenneth French
+- FRED / ALFRED
+- SEC EDGAR
+- Open Source Asset Pricing
+- AKShare
+- WRDS
+- CSMAR
+- RESSET
+
+模块八：Financial Data Validator
+这是金融领域区别于普通数据搜索 Skill 的核心模块。
+
+检查内容：
+1. Look-ahead Bias。
+2. Survivorship Bias。
+3. Point-in-Time 数据问题。
+4. Filing Date / Announcement Date。
+5. 财报年度和市场交易日期对齐。
+6. 股票复权。
+7. Corporate Actions。
+8. Delisted Firms。
+9. Ticker 变更。
+10. CUSIP / ISIN / CIK / PERMNO / GVKEY 映射。
+11. 数据修订（Vintage Data）。
+12. 样本选择偏差。
+13. 缺失值。
+14. 极端值。
+15. 数据频率错配。
+
+模块九：Identifier Resolver
+支持金融数据库常见标识符转换：
+- Ticker
+- CUSIP
+- ISIN
+- CIK
+- PERMNO
+- PERMCO
+- GVKEY
+- 股票代码
+- 公司统一社会信用标识等
+
+典型连接：
+CRSP ↔ Compustat
+CRSP ↔ SEC
+Compustat ↔ IBES
+上市公司 ↔ 专利
+上市公司 ↔ 文本/公告
+
+模块十：Research-ready Dataset Builder
+将多个来源的数据合并成适合回归分析的面板数据。
+
+功能：
+- 时间标准化。
+- 公司 ID 标准化。
+- 数据频率转换。
+- Lag 处理。
+- Winsorization。
+- 缺失值处理。
+- Merge。
+- Panel 构造。
+- 变量计算。
+
+七、输出设计
+
+建议标准目录：
+
+project/
+├── raw/
+│   ├── fred/
+│   ├── sec/
+│   ├── french_factors/
+│   └── wrds/
+│
+├── processed/
+│   └── research_panel.csv
+│
+├── code/
+│   ├── download.py
+│   ├── clean.py
+│   └── merge.py
+│
+├── metadata/
+│   ├── variable_dictionary.csv
+│   ├── dataset_sources.csv
+│   └── identifiers.csv
+│
+└── README.txt
+
+README 应记录：
+- 数据来源。
+- 下载日期。
+- 样本范围。
+- 数据频率。
+- API / 数据库。
+- 数据许可。
+- 变量构造。
+- 合并方式。
+- 关键风险。
+- 复现方式。
+
+八、用户交互设计
+
+用户最小输入：
+1. 论文题目；或
+2. 研究问题；或
+3. 一组变量；或
+4. 一篇参考论文。
+
+系统第一阶段输出：
+“数据需求方案”
+
+内容：
+- 需要哪些数据。
+- 推荐数据库。
+- 免费方案。
+- 学校订阅方案。
+- 不同方案优缺点。
+- 是否可以自动下载。
+
+系统第二阶段：
+用户选择方案或授权已有数据库访问。
+
+系统第三阶段：
+自动下载和整理数据。
+
+九、MVP 范围
+
+第一版不应追求覆盖所有金融数据库。
+
+MVP 建议支持：
+
+免费：
+1. Kenneth French Data Library。
+2. FRED / ALFRED。
+3. SEC EDGAR。
+4. Open Source Asset Pricing。
+5. AKShare。
+
+学校订阅：
+6. WRDS。
+7. CSMAR。
+8. RESSET。
+
+优先覆盖论文类型：
+1. 资产定价。
+2. 公司金融。
+3. 中国上市公司实证。
+4. 宏观金融。
+5. 文本 + 财务数据研究。
+
+十、MVP 核心能力
+
+P0：
+- Research Question → Variables。
+- Variable → Dataset。
+- 免费数据源优先排序。
+- 数据源真实性验证。
+- 数据自动下载。
+- Variable Dictionary。
+- Data Source README。
+
+P1：
+- WRDS / CSMAR 权限识别。
+- RESSET 网页授权会话支持。
+- Literature Evidence。
+- Replication Package 搜索。
+- Identifier Linking。
+- Data Validator。
+
+P2：
+- 自动合并多数据库。
+- 自动构建研究面板。
+- 自动生成 Stata/R/Python 数据处理代码。
+- 自动识别论文方法并建议数据。
+- 数据质量评分。
+- 数据源替代推荐。
+
+十一、非功能需求
+
+1. 安全性
+不得收集和长期保存学校数据库密码。
+认证优先采用 OAuth、API Token、Local Session、MFA 或用户本地登录。
+
+2. 合规性
+不得绕过付费数据库授权体系。
+不得通过逆向工程获得用户原本没有的权限。
+必须遵循各数据平台下载限制和许可协议。
+
+3. 可追溯性
+每个变量必须能够追溯至：
+来源 → 数据集 → 表 → 字段 → 下载时间。
+
+4. 可复现性
+尽可能输出完整下载和清洗代码。
+
+5. 成本透明
+每个推荐数据源明确标记：
+FREE / SCHOOL SUBSCRIPTION / PAID。
+
+十二、产品核心竞争力
+
+本产品的核心壁垒不是下载器，而是不断积累的“金融研究数据知识图谱”。
+
+最终核心资产为：
+
+论文研究问题
+→ Economic Construct
+→ Variable
+→ Measurement
+→ Dataset
+→ Database
+→ Table
+→ Field
+→ Identifier
+→ Cost
+→ Access Method
+→ Academic Evidence
+
+数据库覆盖越多，论文案例积累越多，系统的数据推荐能力越强。
+
+十三、成功指标
+
+1. 用户输入论文题目后，80%以上常见变量能够给出真实数据来源。
+2. 常见免费数据集自动下载成功率达到95%以上。
+3. 系统能够明确区分免费、学校订阅和个人付费数据。
+4. 推荐结果不得出现不存在的数据表或字段。
+5. 常用研究场景中，显著减少学生人工搜索数据库的时间。
+6. 数据输出能够被 Stata、R、Python 直接使用。
+7. 关键金融偏差风险能够自动提示。
+
+十四、最终产品定位
+
+本 Skill 不应被定义为：
+“金融数据下载器”。
+
+更准确的定位是：
+
+“面向高校学生的实证金融研究数据助手：根据论文研究需求，自动寻找最低成本、真实、学术可信的数据源，并在合法权限范围内完成数据获取、验证、整理和复现。”
+
+最终用户体验应尽量接近：
+
+用户输入：
+“我想研究企业 ESG 表现是否影响股票崩盘风险。”
+
+系统完成：
+研究设计解析
+→ 变量需求
+→ 数据库推荐
+→ 免费/学校权限比较
+→ 数据获取
+→ 字段解释
+→ 数据合并
+→ 偏差检查
+→ 输出可直接用于回归的研究数据集。

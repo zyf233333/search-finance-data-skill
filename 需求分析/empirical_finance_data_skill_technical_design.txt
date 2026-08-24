@@ -1,0 +1,1135 @@
+实证金融研究数据 Skill —— 技术设计文档
+
+版本：V1.0
+日期：2026-08-22
+项目名称：Empirical Finance Data Skill
+
+一、技术目标
+
+本项目拟实现一个面向高校学生及未来 AI Research Agent 的实证金融数据 Skill。
+
+系统不应被设计为单纯的数据下载工具，而应被设计为 AI-native 的研究数据基础设施。其核心目标是：
+
+1. 理解论文研究问题。
+2. 将研究问题转换为结构化变量需求。
+3. 为每个变量寻找真实、可用、学术可信的数据源。
+4. 优先选择免费或学校已有订阅的数据源。
+5. 在合法授权范围内完成数据访问和下载。
+6. 对金融研究特有的数据问题进行验证。
+7. 输出可直接用于回归的数据文件。
+8. 同时生成完整的数据来源、变量构造、引用及 provenance 证据，方便论文写作。
+9. 为未来 AI 自动完成实证研究提供标准化接口。
+
+核心技术原则：
+
+- AI 负责理解、规划和决策。
+- 程序负责认证、查询、下载、校验和数据处理。
+- 所有关键中间状态必须结构化。
+- 所有数据来源必须可追溯。
+- 所有 Connector 使用统一协议。
+- 免费优先，学校订阅次之，个人付费最后。
+- 不绕过认证、不破解权限、不突破数据库授权限制。
+
+
+二、总体技术架构
+
+整体架构如下：
+
+User / AI Research Agent
+        │
+        ▼
+ResearchDataSpec
+        │
+        ▼
+Empirical Finance Data Skill
+        │
+        ├──────── Research Planner
+        │
+        ├──────── Variable Resolver
+        │
+        ├──────── Dataset Resolver
+        │
+        ├──────── Access Resolver
+        │
+        ├──────── Evidence Resolver
+        │
+        └──────── Workflow State Manager
+        │
+        ▼
+Dataset Registry
+        │
+        ▼
+Connector Layer
+        │
+        ├── Kenneth French
+        ├── FRED / ALFRED
+        ├── SEC EDGAR
+        ├── Open Source Asset Pricing
+        ├── AKShare
+        ├── WRDS
+        ├── CSMAR
+        └── RESSET
+        │
+        ▼
+Financial Data Validator
+        │
+        ▼
+Research Package
+        ├── Data Package
+        └── Evidence Package
+
+
+三、AI-Native 设计原则
+
+本系统未来很可能主要由 AI 调用，因此接口设计必须优先考虑 AI 可理解性，而不是传统网页操作体验。
+
+每个模块必须：
+
+1. 返回结构化 JSON。
+2. 明确当前状态。
+3. 明确下一步可执行动作。
+4. 不依赖 Agent 自己记忆流程状态。
+5. 使用统一命名和统一错误格式。
+6. 对数据源、权限、字段、频率、覆盖期做显式描述。
+7. 避免返回只有人类能够理解的模糊文本。
+
+示例：
+
+{
+  "dataset_id": "wrds.compustat.funda",
+  "concept": "firm_size",
+  "measurement": "ln_total_assets",
+  "status": "available",
+  "access": {
+    "type": "institutional",
+    "authenticated": true
+  },
+  "frequency": "annual",
+  "coverage": ["1950", "2025"],
+  "identifiers": ["gvkey", "datadate"],
+  "fields": {
+    "total_assets": "at"
+  },
+  "next_actions": [
+    "preview",
+    "download"
+  ]
+}
+
+这样 AI 可以明确知道：
+- 当前找到什么。
+- 是否可访问。
+- 使用什么字段。
+- 下一步可以做什么。
+
+
+四、ResearchDataSpec
+
+ResearchDataSpec 是整个系统最核心的中间数据结构。
+
+所有模块应围绕同一个 ResearchDataSpec 工作，避免每个 Agent 重复理解用户自然语言。
+
+示例：
+
+{
+  "research_question": "Does ESG affect stock crash risk?",
+  "market": "China A-share",
+  "period": {
+    "start": 2012,
+    "end": 2024
+  },
+  "frequency": "annual",
+  "unit": "firm-year",
+  "variables": [
+    {
+      "concept": "ESG",
+      "role": "independent",
+      "measurement": null,
+      "status": "unresolved"
+    },
+    {
+      "concept": "stock_crash_risk",
+      "role": "dependent",
+      "measurement": ["NCSKEW", "DUVOL"],
+      "status": "resolved"
+    }
+  ]
+}
+
+ResearchDataSpec 应逐步补充：
+
+concept
+→ measurement
+→ raw_variables
+→ candidate_datasets
+→ selected_dataset
+→ table
+→ fields
+→ identifiers
+→ access
+→ downloaded_file
+→ validation
+→ citation
+
+ResearchDataSpec 应支持持久化，以便不同 AI 或不同任务阶段接力执行。
+
+
+五、Research Planner
+
+Research Planner 负责将用户自然语言转换为 ResearchDataSpec。
+
+输入形式包括：
+
+1. 论文题目。
+2. 研究问题。
+3. 假设。
+4. 变量列表。
+5. 参考论文。
+6. 已有研究设计。
+
+需要识别：
+
+- 市场。
+- 国家或地区。
+- 样本期。
+- 数据频率。
+- Observation Unit。
+- 因变量。
+- 核心解释变量。
+- 控制变量。
+- 中介变量。
+- 调节变量。
+- 工具变量。
+- 固定效应。
+- 可能的识别策略。
+
+Research Planner 不负责下载数据，只负责将研究问题标准化。
+
+
+六、Variable Resolver
+
+Variable Resolver 负责完成：
+
+Economic Construct
+→ Measurement
+→ Raw Variables
+
+例如：
+
+Financing Constraints
+→ SA Index
+→ Size + Age
+
+Firm Size
+→ ln(Total Assets)
+→ Total Assets
+
+Stock Crash Risk
+→ NCSKEW / DUVOL
+→ Weekly Firm Return + Market Return
+
+Fama-French Risk
+→ FF3
+→ MKT-RF + SMB + HML
+
+该模块的数据主要来自 Variable Registry。
+
+建议初期使用：
+
+knowledge/variables.yaml
+knowledge/measurements.yaml
+
+后期可以迁移至 PostgreSQL 或图数据库。
+
+
+七、Dataset Registry
+
+Dataset Registry 是项目最重要的数据资产。
+
+它用于维护：
+
+Economic Construct
+→ Variable
+→ Measurement
+→ Dataset
+→ Database
+→ Table
+→ Field
+→ Identifier
+→ Access Method
+→ Cost
+→ Academic Evidence
+
+每个 Dataset 至少需要记录：
+
+- dataset_id
+- provider
+- database
+- dataset_name
+- table
+- description
+- fields
+- identifiers
+- frequency
+- coverage
+- geography
+- asset_class
+- access_type
+- authentication_method
+- API availability
+- download_method
+- cost_tier
+- academic_acceptance
+- reproducibility_score
+- license_notes
+- documentation_url
+- citation
+- alternatives
+
+成本分级：
+
+Tier A：免费官方
+Tier B：免费学术
+Tier C：免费开源接口
+Tier D：学校订阅
+Tier E：商业付费
+
+
+八、Dataset Resolver
+
+Dataset Resolver 根据 ResearchDataSpec 和 Dataset Registry 为每个变量寻找候选数据源。
+
+推荐优先级：
+
+1. 免费官方数据。
+2. 免费学术数据。
+3. 免费开源数据。
+4. 学校已有订阅数据。
+5. 低成本商业数据。
+6. 高成本商业数据。
+
+建议评分：
+
+Dataset Score =
+30% Variable Fit
++ 20% Academic Acceptance
++ 20% Cost
++ 10% Automation
++ 10% Coverage
++ 10% Reproducibility
+
+例如：
+
+需求：
+Fama-French Three Factors
+
+候选：
+- Kenneth French Data Library
+- RESSET
+- CSMAR
+
+系统应优先选择 Kenneth French，因为：
+- 免费。
+- 官方学术来源。
+- 自动下载。
+- 可复现性高。
+- 无需学校登录。
+
+
+九、Access Resolver
+
+Access Resolver 专门负责权限判断。
+
+统一 access 类型：
+
+public
+api_key
+institutional
+account
+campus_ip
+carsi
+vpn
+mfa
+browser_session
+
+示例：
+
+{
+  "provider": "RESSET",
+  "access_type": "institutional",
+  "methods": [
+    "CARSI",
+    "campus_ip",
+    "account"
+  ],
+  "authenticated": false,
+  "next_action": "user_login"
+}
+
+原则：
+
+1. Skill 不拥有数据库权限。
+2. 权限属于用户。
+3. 用户自行完成 CARSI、VPN、MFA 等身份认证。
+4. Skill 仅使用已授权 session。
+5. 不长期保存明文密码。
+6. 不绕过验证码。
+7. 不伪造学校 IP。
+8. 不利用逆向工程扩大用户权限。
+9. 遵循数据库下载限制。
+
+Credential 建议：
+- 系统 Keychain。
+- Environment Variable。
+- Local Token File。
+- Short-lived Session。
+
+
+十、统一 Connector 协议
+
+所有数据库 Connector 必须使用统一接口。
+
+建议接口：
+
+discover()
+describe()
+check_access()
+search()
+schema()
+preview()
+download()
+validate()
+cite()
+
+基础抽象：
+
+class DatasetConnector:
+
+    def check_access(self):
+        pass
+
+    def search(self, query):
+        pass
+
+    def describe(self, dataset_id):
+        pass
+
+    def schema(self, dataset_id):
+        pass
+
+    def preview(self, dataset_id, params):
+        pass
+
+    def download(self, dataset_id, params, output_path):
+        pass
+
+    def citation(self, dataset_id):
+        pass
+
+这样 AI 不需要理解不同数据库的具体实现。
+
+Connector 可分别使用：
+
+- REST API
+- Python SDK
+- MCP
+- SQL
+- HTTP Download
+- Browser Automation
+
+但上层接口保持一致。
+
+
+十一、Probe Before Download
+
+对于所有学校订阅数据库，禁止 Agent 一发现数据就直接大规模下载。
+
+标准流程：
+
+search
+→ describe
+→ schema
+→ preview
+→ validate
+→ download
+
+例如：
+
+search:
+找到 RESSET 股票日收益表。
+
+schema:
+确认字段包含股票代码、日期、收益率。
+
+preview:
+读取 20 行。
+
+validate:
+确认频率、时间范围和字段满足研究需求。
+
+download:
+才开始正式下载。
+
+此机制可降低：
+- 下载错误。
+- 数据量过大。
+- 学校数据库异常使用风险。
+- Agent 幻觉字段。
+
+
+十二、首批 Connector
+
+MVP 建议：
+
+免费数据：
+
+1. Kenneth French Data Library
+2. FRED / ALFRED
+3. SEC EDGAR
+4. Open Source Asset Pricing
+5. AKShare
+
+学校订阅：
+
+6. WRDS
+7. CSMAR
+8. RESSET
+
+Connector 目录：
+
+scripts/connectors/
+    base.py
+    kenneth_french.py
+    fred.py
+    sec_edgar.py
+    open_asset_pricing.py
+    akshare.py
+    wrds.py
+    csmar.py
+    resset.py
+
+
+十三、Evidence Resolver
+
+系统除数据下载外，必须生成用于论文写作的数据证据。
+
+Evidence Resolver 负责收集：
+
+1. 数据提供方。
+2. 数据集名称。
+3. 表和字段。
+4. 下载日期。
+5. 数据覆盖期。
+6. 使用区间。
+7. 数据频率。
+8. 官方说明。
+9. Dataset Citation。
+10. Methodology Citation。
+11. 代表性实证论文。
+12. Replication Package。
+13. 变量构造方法。
+
+Evidence 应与变量绑定，而不是只与整个文件绑定。
+
+
+十四、Variable-level Provenance
+
+每个最终变量必须能够追溯来源。
+
+例如：
+
+{
+  "roa": {
+    "concept": "profitability",
+    "measurement": "net_income / total_assets",
+    "source": "WRDS Compustat",
+    "dataset": "funda",
+    "raw_fields": ["ni", "at"],
+    "identifier": "gvkey",
+    "frequency": "annual",
+    "formula": "ni / at"
+  },
+  "ff_mkt": {
+    "concept": "market_factor",
+    "source": "Kenneth French Data Library",
+    "dataset": "F-F Research Data Factors",
+    "raw_field": "Mkt-RF",
+    "frequency": "monthly"
+  }
+}
+
+这使后续 AI 可以直接回答：
+
+- 变量从哪里来？
+- 如何构造？
+- 为什么使用？
+- 应该引用什么？
+
+
+十五、Research Data Evidence Pack
+
+系统必须生成两个独立产出。
+
+A. Data Package
+
+data/
+    raw/
+    processed/
+    research_panel.csv
+
+作用：
+直接用于 Stata、R、Python 回归。
+
+B. Evidence Package
+
+evidence/
+    data_sources.md
+    variable_dictionary.csv
+    provenance.json
+    citations.bib
+    methodology_notes.md
+    access_log.json
+
+作用：
+支持论文 Data Section、Variable Definition、Reference 和 Replication。
+
+
+十六、data_sources.md
+
+用于向学生解释数据来源。
+
+建议字段：
+
+Dataset
+Provider
+Variables Used
+Frequency
+Coverage
+Period Used
+Access Type
+Download Date
+Official Documentation
+Notes
+
+示例：
+
+Dataset:
+Fama/French 3 Factors
+
+Provider:
+Kenneth R. French Data Library
+
+Variables:
+Mkt-RF, SMB, HML, RF
+
+Frequency:
+Monthly
+
+Period Used:
+2000-01 to 2024-12
+
+Access:
+Public
+
+Download Date:
+2026-08-22
+
+
+十七、论文写作指导
+
+Evidence Package 中增加：
+
+methodology_notes.md
+
+其中可自动生成：
+
+1. 数据来源事实。
+2. 推荐的论文表述。
+3. 变量定义。
+4. 数据合并方式。
+5. 样本处理说明。
+6. 引用建议。
+
+必须区分：
+
+FACT
+与
+SUGGESTED WORDING
+
+避免 AI 将推测当成事实。
+
+例如：
+
+FACT:
+Fama-French 三因子来自 Kenneth French Data Library。
+
+SUGGESTED WORDING:
+“Fama-French 风险因子数据来自 Kenneth R. French Data Library。”
+
+最终写作 Agent 可直接读取 Evidence Package。
+
+
+十八、Citation 设计
+
+建议支持两个 citation 类型：
+
+1. Dataset Citation
+用于引用具体数据库或数据源。
+
+2. Methodology Citation
+用于引用变量构造或模型来源。
+
+例如：
+
+SMB
+→ Dataset Citation:
+Kenneth French Data Library
+
+→ Methodology Citation:
+Fama and French (1993)
+
+系统接口：
+
+get_dataset_citation(variable_id)
+get_methodology_citation(variable_id)
+
+
+十九、Financial Data Validator
+
+下载成功后必须执行金融数据验证。
+
+检查：
+
+1. 时间覆盖。
+2. Frequency。
+3. Missing Value。
+4. Duplicate。
+5. Identifier。
+6. Delisted Firms。
+7. Survivorship Bias。
+8. Look-ahead Bias。
+9. Point-in-Time。
+10. Filing Date。
+11. Announcement Date。
+12. Corporate Actions。
+13. Stock Adjustment。
+14. Data Revision。
+15. Vintage Data。
+16. Units。
+17. Return 单位。
+18. 数据频率错配。
+
+Validator 尽可能使用确定性 Python 规则，而不是完全依赖 LLM。
+
+
+二十、Identifier Resolver
+
+需要支持：
+
+- Ticker
+- CUSIP
+- ISIN
+- CIK
+- PERMNO
+- PERMCO
+- GVKEY
+- 中国股票代码
+- 公司 ID
+
+用于实现：
+
+CRSP ↔ Compustat
+CRSP ↔ SEC
+Compustat ↔ IBES
+上市公司 ↔ 专利
+上市公司 ↔ 新闻
+上市公司 ↔ 年报文本
+
+Identifier mapping 必须尽可能考虑时间有效性。
+
+
+二十一、Workflow State Manager
+
+为了方便 AI 长时间执行复杂研究任务，需要显式状态机。
+
+示例：
+
+{
+  "concept_resolved": true,
+  "measurement_confirmed": true,
+  "dataset_verified": true,
+  "access_verified": true,
+  "schema_verified": true,
+  "preview_verified": true,
+  "download_complete": true,
+  "validation_passed": true,
+  "citation_ready": true
+}
+
+建议变量级状态，而不是仅任务级状态。
+
+这样：
+
+- Agent 可以中断后恢复。
+- 另一个 Agent 可以继续执行。
+- 用户可以随时查看进度。
+- 避免重复下载。
+- 避免重复验证。
+
+
+二十二、错误模型
+
+所有 Connector 应使用统一错误格式。
+
+例如：
+
+{
+  "success": false,
+  "error_code": "AUTH_REQUIRED",
+  "message": "WRDS authentication is required.",
+  "recoverable": true,
+  "next_action": "user_login"
+}
+
+建议错误类型：
+
+AUTH_REQUIRED
+MFA_REQUIRED
+NO_SUBSCRIPTION
+DATASET_NOT_FOUND
+FIELD_NOT_FOUND
+COVERAGE_MISMATCH
+RATE_LIMITED
+DOWNLOAD_LIMIT
+SESSION_EXPIRED
+LICENSE_RESTRICTED
+SCHEMA_CHANGED
+
+
+二十三、目录结构
+
+empirical-finance-data/
+│
+├── SKILL.md
+│
+├── knowledge/
+│   ├── variables.yaml
+│   ├── measurements.yaml
+│   ├── datasets.yaml
+│   ├── literature.yaml
+│   └── citations.yaml
+│
+├── schemas/
+│   ├── research_data_spec.json
+│   ├── dataset_result.json
+│   └── provenance.json
+│
+├── scripts/
+│   ├── planner.py
+│   ├── resolver.py
+│   ├── access.py
+│   ├── validator.py
+│   ├── provenance.py
+│   ├── state_manager.py
+│   ├── merger.py
+│   │
+│   └── connectors/
+│       ├── base.py
+│       ├── kenneth_french.py
+│       ├── fred.py
+│       ├── sec_edgar.py
+│       ├── open_asset_pricing.py
+│       ├── akshare.py
+│       ├── wrds.py
+│       ├── csmar.py
+│       └── resset.py
+│
+├── templates/
+│   ├── data_sources.md
+│   ├── methodology_notes.md
+│   └── README.md
+│
+└── examples/
+    ├── asset_pricing/
+    ├── corporate_finance/
+    ├── china_a_share/
+    └── macro_finance/
+
+
+二十四、SKILL.md 设计
+
+SKILL.md 应尽量保持轻量。
+
+主要定义：
+
+1. 何时触发。
+2. 如何构造 ResearchDataSpec。
+3. 必须优先查询 Variable Registry。
+4. 必须免费优先。
+5. 必须验证真实 Dataset。
+6. 必须执行 Probe Before Download。
+7. 如何处理权限。
+8. 下载后必须执行 Validator。
+9. 必须生成 Data Package。
+10. 必须生成 Evidence Package。
+
+建议核心流程：
+
+1. Parse research request.
+2. Build ResearchDataSpec.
+3. Resolve economic concepts.
+4. Resolve measurements.
+5. Search Dataset Registry.
+6. Rank candidates using cost-aware policy.
+7. Verify dataset existence and schema.
+8. Check user access.
+9. Preview before downloading.
+10. Download through connector.
+11. Validate financial data.
+12. Build provenance.
+13. Generate Data Package.
+14. Generate Evidence Package.
+15. Update workflow state.
+
+
+二十五、MVP 数据变量范围
+
+第一阶段不追求所有金融变量。
+
+建议先覆盖约 100 个高频实证变量，包括：
+
+Market Return
+Stock Return
+Market Cap
+Book-to-Market
+Size
+ROA
+ROE
+Leverage
+Cash
+CAPEX
+R&D
+Sales Growth
+Firm Age
+Tobin's Q
+Beta
+Momentum
+Volatility
+Liquidity
+Turnover
+FF3
+FF5
+Risk-free Rate
+SMB
+HML
+RMW
+CMA
+Analyst Forecast
+Institutional Ownership
+Dividend
+Debt Ratio
+SA Index
+KZ Index
+WW Index
+NCSKEW
+DUVOL
+ESG
+Patent
+GDP
+CPI
+Interest Rate
+Credit Spread
+Unemployment
+Industrial Production
+等。
+
+
+二十六、MVP 开发阶段
+
+Phase 1：核心框架
+
+- ResearchDataSpec
+- Variable Registry
+- Dataset Registry
+- Resolver
+- Connector Base Interface
+- State Manager
+
+Phase 2：免费 Connector
+
+- Kenneth French
+- FRED
+- SEC
+- Open Source Asset Pricing
+- AKShare
+
+Phase 3：Evidence Package
+
+- provenance.json
+- data_sources.md
+- citations.bib
+- methodology_notes.md
+
+Phase 4：学校数据库
+
+- WRDS
+- CSMAR
+- RESSET
+
+Phase 5：金融验证与合并
+
+- Financial Validator
+- Identifier Resolver
+- Merge Planner
+- Research-ready Panel Builder
+
+
+二十七、技术栈建议
+
+第一版建议：
+
+语言：
+Python
+
+Skill：
+Codex Skill / Plugin
+
+数据结构：
+JSON / YAML
+
+Registry：
+SQLite 起步
+后续 PostgreSQL
+
+数据处理：
+Pandas / Polars
+
+Schema Validation：
+Pydantic / JSON Schema
+
+HTTP：
+httpx / requests
+
+API Connector：
+各官方 SDK/API
+
+Browser Automation：
+仅用于用户已完成合法认证后的正常网页操作
+
+数据存储：
+Local filesystem
+
+Credential：
+OS Keychain / Environment Variable / Local Session
+
+引用：
+BibTeX
+
+未来可选：
+
+PostgreSQL
+Neo4j
+Vector Database
+MCP Server
+Cloud Object Storage
+
+
+二十八、关键技术风险
+
+1. LLM 可能生成不存在的字段。
+解决：
+Registry + schema verification。
+
+2. 数据库网页结构变化。
+解决：
+Connector 独立维护；API 优先。
+
+3. 学校权限复杂。
+解决：
+Access Resolver + 用户本地授权 session。
+
+4. 商业数据库限制自动化下载。
+解决：
+遵守许可；Probe；限制批量操作。
+
+5. AI 中途丢失上下文。
+解决：
+ResearchDataSpec + Workflow State。
+
+6. 数据来源无法写入论文。
+解决：
+Evidence Package + Provenance。
+
+7. 同一变量定义不唯一。
+解决：
+Measurement Registry + Literature Evidence。
+
+8. 免费替代数据学术质量不足。
+解决：
+Academic Acceptance Score 和明确的替代等级。
+
+
+二十九、长期架构目标
+
+项目最终应成为：
+
+AI Research Agent
+        │
+        ▼
+Empirical Finance Data Skill
+        │
+        ▼
+Financial Data Intelligence Layer
+        │
+        ├── Variable Knowledge
+        ├── Dataset Knowledge
+        ├── Literature Evidence
+        ├── Access Intelligence
+        ├── Provenance
+        └── Financial Validation
+        │
+        ▼
+Real Data Infrastructure
+
+长期来看，真正的产品壁垒不是 Connector 数量，而是不断积累的：
+
+论文
+→ Research Question
+→ Economic Construct
+→ Measurement
+→ Variable
+→ Dataset
+→ Table
+→ Field
+→ Access
+→ Provenance
+→ Citation
+
+知识体系。
+
+
+三十、最终技术定位
+
+Empirical Finance Data Skill 应被定义为：
+
+“一个面向 AI 和高校学生的实证金融研究数据基础设施。系统将研究问题转换为结构化数据需求，在免费、学校订阅和商业数据库之间进行成本敏感的数据源选择，在用户合法权限范围内完成真实数据获取，并同步生成用于论文回归与论文写作的 Data Package 和 Evidence Package。”
+
+最终目标不是让 AI 只会回答：
+
+“这个变量可以去 WRDS 找。”
+
+而是让 AI 能够完整执行：
+
+研究问题
+→ 变量定义
+→ 数据源选择
+→ 权限检查
+→ 字段验证
+→ 数据下载
+→ 数据质量验证
+→ 数据合并
+→ 来源追踪
+→ Citation
+→ Research-ready Dataset
+
+从而成为未来自动化实证金融研究流程中的标准数据层。

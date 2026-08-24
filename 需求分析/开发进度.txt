@@ -1,0 +1,166 @@
+实证金融研究数据 Skill —— 开发进度与最终成果基准
+
+版本：V1.0
+日期：2026-08-22
+对应文档：empirical_finance_data_skill_PRD.txt、empirical_finance_data_skill_technical_design.txt
+
+一、文档用途
+
+本文件用于记录项目是否朝最终目标推进。这里的“目标”是最终产品基准，不是某一个阶段的缩减版需求；“进度”按可验收能力记录，不以开发阶段命名。每项能力完成后，应同时补充代码、测试样例、数据来源说明和已知限制，避免出现只有接口或演示、没有真实数据验证的情况。
+
+文档编辑规则：
+
+1. 基线与进度分离。第二、三、六部分属于最终成果基线，原则上保持稳定；只有需求、架构、合规边界或验收标准发生正式变更时才修改，并更新版本号和日期。
+2. 当前进度保持精简。第四部分只保留每项能力的当前状态、最近更新时间和一句话结果；进行中的任务写当前阻塞点，未开始任务不重复补充说明。
+3. 已完成任务简记。完成项只记录“完成日期 + 产出或验证结论”，不在本文件粘贴代码、日志、接口返回或长篇过程说明。详细证据应放在代码测试、README、Evidence Package 或单独的技术记录中。
+4. 避免重复追加。每次更新优先修改原有条目，不新增同一事项的连续日报；只有发生重大决策、基线变更或风险升级时，才在末尾增加一条变更记录。
+5. 控制历史规模。已完成事项保留一行摘要即可；若历史记录明显增大，应将旧的详细记录移至独立 changelog 或版本归档文件，本文件继续只保留基线和当前状态。
+6. 状态必须可核验。标记“已完成”前至少关联一个可检查的代码、测试样例、真实数据结果或文档产物；若只是设计完成，应标记为“设计完成”，不能等同于功能完成。
+
+二、最终产品总体目标
+
+建设一个面向高校学生和 AI Research Agent 的实证金融研究数据助手。用户输入论文题目、研究问题、变量列表或参考论文后，系统应能够：
+
+研究问题解析 → 研究设计结构化 → 经济概念与变量测度确认 → 数据源检索与成本排序 → 合法权限判断 → 数据集和字段验证 → 试探性预览 → 数据下载 → 金融数据质量检查 → 标识符映射与数据合并 → 研究面板输出 → 来源、引用和处理过程复现。
+
+最终产物包括两个相互关联的包：
+
+1. Data Package：原始数据、清洗数据、研究面板及可执行的处理代码。
+2. Evidence Package：变量字典、数据来源、字段映射、下载日志、数据许可、引用、方法说明、验证结果和 provenance。
+
+产品必须坚持以下基准：免费和官方来源优先；学校已有订阅次之；商业付费最后；不绕过认证或下载限制；关键推断可解释且允许用户确认；每个最终变量均可追溯到来源、数据集、字段、公式、时间和处理代码。
+
+三、最终成果基准评估
+
+1. 需求思路总体可行，没有方向性错误。ResearchDataSpec、Variable Registry、Dataset Registry、统一 Connector、Validator 和 Evidence Package 的组合能够覆盖从自然语言需求到可复现数据的完整链路。
+
+2. 目前需要补强的不是产品定位，而是边界和验收定义。必须明确变量测度不唯一时的候选、置信度和人工确认机制；明确“真实数据源”“学术认可”“可用字段”“下载成功”和“质量通过”的判定规则；明确外部数据库不可访问、覆盖不足、字段变更和许可限制时的降级结果。
+
+3. 技术实现没有不可行的核心环节，但不能把所有能力交给 LLM。LLM 适合解析、规划、解释和排序；认证、字段存在性、下载、哈希、统计检查、ID 映射和状态转移应由确定性程序完成。浏览器自动化只能使用用户已完成认证的合法会话。
+
+4. Dataset Score 必须采用“硬约束过滤后再排序”，并说明成本分值方向；知识图谱可作为长期资产，但初期用版本化 YAML/SQLite Registry 即可。金融 Validator 应采用数据集能力声明加规则引擎，不应承诺对所有数据库自动识别全部前视偏差或幸存者偏差。
+
+5. 成功指标应增加可复现实验集和失败率统计。例如选定固定的研究问题、变量、时间范围和数据源，验证系统是否返回存在的字段、正确的频率、可解释的候选及完整证据，而不仅以“回答看起来合理”作为通过标准。
+
+四、开发进度检查表
+
+状态说明：□ 未开始　◐ 进行中　■ 已完成　△ 受阻或需决策。状态变化时填写日期、负责人、验证样例和遗留问题。
+
+进度条目统一采用简短格式：`状态｜更新时间｜结果/阻塞点｜验证材料`。例如：`■｜2026-08-22｜完成 FRED 下载与字段校验｜tests/fred_basic.py`。不在此处记录过程日志；若一个任务包含多个独立可验收能力，应拆成多个条目。
+
+【基础数据契约】
+■｜2026-08-22｜完成 ResearchDataSpec JSON Schema 与变量级状态持久化骨架｜schemas/research_data_spec.schema.json、scripts/state.py、tests/test_phase1.py
+■｜2026-08-22｜完成 Dataset Result、Provenance、Error Model Schema 初版｜schemas/connector_result.schema.json、schemas/provenance.schema.json
+■｜2026-08-22｜建立变量、测度、原始字段和公式 Registry 初版｜knowledge/variables.json
+■｜2026-08-22｜建立数据集、字段、频率、覆盖期、访问方式、成本和许可 Registry 初版｜knowledge/datasets.json
+
+【研究需求理解】
+□ 支持论文题目、研究问题、变量列表和参考论文四类输入。
+□ 能识别市场、样本期、频率、观察单位、因变量、解释变量、控制变量和识别策略。
+□ 对多种变量测度给出候选、依据和置信度，并要求用户确认关键选择。
+
+【数据源解析与访问】
+□ Resolver 能按市场、频率、覆盖、字段和许可做硬约束筛选，再按成本、学术证据、自动化和可复现性排序。
+■｜2026-08-22｜完成 Connector 统一协议抽象和结构化结果返回｜scripts/connectors/base.py、tests/test_phase1.py
+■｜2026-08-22｜完成 Kenneth French、FRED、SEC EDGAR 三个公共 Connector 的真实 preview/download/validate；含缓存、重试、限流、JSONL 日志和文件哈希｜scripts/connectors/、tests/test_public_connectors.py、tests/test_public_integration.py
+■｜2026-08-22｜完成 API Key 存在性、学校订阅、CARSI/VPN/MFA、浏览器会话和无权限的统一状态模型；不读取或记录密钥值｜scripts/access.py、tests/test_phase3.py
+■｜2026-08-22｜学校 Connector 仅接受用户通过合法会话取得的导出文件；不保存明文密码、不绕过认证，并对远程未配置操作明确返回错误｜scripts/connectors/institutional.py、tests/test_phase3.py
+
+【金融数据处理与验证】
+◐｜2026-08-22｜完成公共 CSV 的日期、覆盖期、频率、缺失、重复键和数值字段检查，并显式提示偏差需人工判断；单位/收益率口径规则留待后续增强｜scripts/validator.py、tests/test_phase4.py
+□ 支持公告日/财报期对齐、滞后变量、复权、公司行为和数据修订说明。
+◐｜2026-08-22｜完成 ticker、CIK、PERMNO、PERMCO、GVKEY 等标识符标准化；带时间有效性的历史映射留待后续增强｜scripts/identifiers.py、tests/test_phase4.py
+■｜2026-08-22｜完成通用左连接、键重复、匹配率、未匹配样本和合并报告输出｜scripts/panel.py、scripts/identifiers.py、tests/test_phase4.py
+■｜2026-08-22｜对无法由规则确定的前视偏差和幸存者偏差显式标记“需人工判断”｜scripts/validator.py、tests/test_phase4.py
+
+【研究输出与复现】
+◐｜2026-08-22｜免费 Workflow 已生成 raw、processed、evidence、logs、cache 和状态文件；code/metadata 独立目录留待后续产品化｜scripts/workflow.py、tests/test_phase4.py
+■｜2026-08-22｜完成 Evidence Package：data_sources、variable_dictionary、provenance、citations、methodology_notes 和脱敏 access_log｜scripts/evidence_package.py、tests/test_phase3.py
+□ 原始文件记录下载时间、请求参数、文件哈希、来源 URL 和许可说明。
+□ 输出可被 Stata、R、Python 直接读取的文件，并提供最小复现命令。
+□ FACT 与 SUGGESTED WORDING 分离，避免把推测写成论文事实。
+
+【质量验收】
+◐｜2026-08-22｜建立 GDP/FRED、Fama-French、SEC 三个免费公开基准任务；中国上市公司和跨库任务留待免费替代源补充｜knowledge/benchmarks.json、tests/test_public_integration.py、tests/test_phase4.py
+■｜2026-08-22｜Workflow 验证字段、访问、预览、下载、覆盖、面板、证据和失败状态可解释｜scripts/workflow.py、tests/test_phase4.py
+□ 记录各 Connector 的成功率、失败类型、平均耗时和人工介入点。
+□ 对 Schema 变化、会话过期、限流、覆盖不足和许可限制编写回归测试。
+
+五、建议的实施原则
+
+开发顺序可以分阶段，但不改变上述最终基准。每次新增能力都应沿同一条闭环验收：真实需求输入、候选数据源、访问状态、schema/preview、下载文件、验证报告和 Evidence Package。优先保证“少量数据源的完整可信闭环”，再扩大数据库数量；优先保证结构化状态、可追溯和失败可解释，再增加自动化程度。对于定义不唯一、权限不明或金融偏差无法由规则确定的环节，采用人机协同确认，而不是让系统静默替用户做出不可逆判断。
+
+六、当前基准结论
+
+最终需求分析和技术路线总体成立，适合作为长期产品基准；主要风险是范围过宽、验收标准不足、LLM 责任边界不清以及外部数据库权限和数据语义的不确定性。只要按本文件补齐数据契约、判定规则、失败模型、人工确认点和基准测试集，方案在工程上是可落地的，后续分几个开发阶段属于项目管理问题，不构成对最终设计的否定。
+
+七、正式开发阶段划分
+
+正式开发统一采用四个阶段。阶段之间存在依赖关系，上一阶段未达到退出标准时，不进入下一阶段的扩展工作。每个阶段都必须同时补充代码、测试、示例和限制说明。
+
+【阶段一：核心契约与最小框架】
+
+目标：建立系统的共同数据结构和可恢复执行骨架。
+
+范围：ResearchDataSpec、Variable Registry、Dataset Registry、JSON Schema、统一 Connector 接口、统一结果/错误/状态模型、配置和日志。
+
+退出标准：研究问题可以转换为结构化变量需求；Registry 可以返回候选变量和数据集；模块返回统一 JSON；任务状态可以保存、恢复并解释。此阶段暂不实现复杂数据库下载和前端界面。
+
+【阶段二：免费数据源闭环（首个 MVP）】
+
+目标：完成少量公共数据源的真实、可复现获取闭环。
+
+优先数据源：Kenneth French Data Library、FRED/ALFRED、SEC EDGAR、AKShare、Open Source Asset Pricing。
+
+统一流程：需求解析 → 数据源检索 → schema 检查 → preview → download → validate。必须具备缓存、重试、限流、下载日志、文件哈希、基础数据验证和 data_sources.md。
+
+退出标准：至少三个公共数据源能够真实下载；字段、频率、覆盖期和缺失值可验证；失败返回明确错误和下一步动作；能够生成最小可复现数据来源说明。本阶段完成后，项目才算拥有正式 MVP。
+
+【阶段三：学校数据库与 Evidence Package】
+
+目标：在合法授权范围内接入学校数据库，并建立论文可用的证据链。
+
+范围：WRDS、CSMAR、RESSET；API Key、校园网、VPN、CARSI、MFA 和浏览器会话状态；provenance.json、variable_dictionary.csv、citations.bib、methodology_notes.md。
+
+退出标准：不保存明文密码、不绕过认证；明确区分无权限、会话过期、无订阅和下载受限；每个变量可追溯到数据集、表、字段、公式和下载时间；FACT 与 SUGGESTED WORDING 分离。
+
+【阶段四：金融验证、跨库合并与产品化】
+
+目标：从数据获取工具升级为研究数据助手。
+
+范围：Financial Validator、Identifier Resolver、跨库连接、公告日/财报期对齐、滞后变量、复权处理、偏差风险提示、Research-ready Panel Builder、Stata/R/Python 输出、基准任务集和回归测试；最后再加入最小命令行或前端交互层。
+
+退出标准：可以生成研究面板而不只是原始文件；合并报告包含匹配率、重复率和丢失样本；无法确定的前视偏差或幸存者偏差明确标记为“需人工判断”；至少通过资产定价、宏观金融和中国上市公司三个基准任务。
+
+八、正式开发启动检查清单
+
+正式编码前必须完成以下事项：
+
+1. 确认 Python 版本、依赖管理方式、测试框架和代码目录。
+2. 将 ResearchDataSpec、Dataset Result、Provenance、Error Model 固化为初版 Schema，并准备合法/非法样例。
+3. 建立第一批变量和数据集 Registry，明确字段、频率、覆盖期、访问方式、成本和许可。
+4. 选定至少三个公共数据源的固定基准任务、样例参数和预期结果。
+5. 确认 raw、processed、evidence、缓存和日志目录均不进入版本控制，补充忽略规则。
+6. 明确测试分层：离线单元测试为默认，真实下载作为显式集成测试。
+7. 为认证、限流、字段不存在、覆盖不足、会话过期和许可限制定义统一错误码。
+8. 确认每阶段负责人、验证材料和退出评审方式；未通过退出标准不得以“设计完成”替代“功能完成”。
+
+九、开发执行约束
+
+第一开发目标是阶段二的可信闭环，而不是一次性覆盖所有数据库。后续需求若不能服务于当前阶段的退出标准，应进入待办，不直接扩大范围。所有涉及权限、变量测度选择、金融偏差或不可逆下载的操作必须保留人工确认点；所有新增 Connector 必须遵循统一协议并附带离线测试夹具、真实数据验证记录和许可说明。
+
+十、阶段一实施记录
+
+2026-08-22：阶段一核心框架开发完成。已交付 Python 核心数据契约、JSON Schema、变量/数据集 Registry、Connector 抽象、状态文件原子保存、JSONL 结构化日志、README 和 5 项离线测试。`python -m pytest -q` 结果为 `5 passed`；`python -m compileall -q scripts tests` 通过。阶段一退出标准已满足，下一步进入阶段二公共数据源闭环开发。
+
+十一、阶段二实施记录
+
+2026-08-22：阶段二公共数据源闭环开发完成。已交付 Kenneth French 月度 FF3、FRED Graph CSV、SEC EDGAR 公司代码表三个 Connector，以及标准库 HTTP 客户端（缓存、重试、限流）、CSV/JSON 基础校验、SHA-256 下载证据、data_sources.md、命令行入口、离线夹具测试和显式集成测试。离线测试 `python -m pytest -q` 结果为 `9 passed, 3 skipped`；在允许网络访问的环境中运行 `RUN_INTEGRATION=1 python -m pytest -q -m integration --basetemp .test_tmp` 结果为 `3 passed`。阶段二退出标准已满足，下一步进入阶段三学校数据库与 Evidence Package 开发。
+
+十二、阶段三实施记录
+
+2026-08-22：阶段三学校数据库与 Evidence Package 开发完成。已交付 WRDS、CSMAR、RESSET 的目录和统一 Connector 骨架；AccessResolver 可区分 AUTH_REQUIRED、SESSION_EXPIRED、MFA_REQUIRED、NO_SUBSCRIPTION 和 API Key 未配置；授权导出支持 preview、schema、validate、download 和哈希证据；Evidence Package 自动生成六类论文复现文件并对 access_log 做敏感字段脱敏。全量离线测试 `python -m pytest -q` 结果为 `14 passed, 3 skipped`。远程学校数据库未做无凭证访问，符合合规边界；下一步进入阶段四金融验证、跨库合并与产品化。
+
+十三、阶段四实施记录
+
+2026-08-22：阶段四免费公开路径完成。已交付金融数据基础验证、标识符标准化、通用合并与匹配报告、免费研究请求解析、公开数据集 Resolver、端到端 Workflow、研究面板输出和三个基准任务。真实公共端点验证结果：FRED GDP 318 行、Kenneth French FF3 1,200 行、SEC 公司代码 10,403 行均完成 preview → download → validate → research_panel → Evidence Package。离线测试 `python -m pytest -q` 结果为 `19 passed, 3 skipped`。学校数据库不纳入本阶段验收；下一步可在需求明确后增强单位/收益率口径、时间有效 ID 映射和更多免费中国市场数据源。
