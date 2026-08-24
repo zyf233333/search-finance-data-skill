@@ -1,0 +1,13 @@
+# Python bytecode and test artefacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.test_tmp/
+
+# Local data, caches, logs, and generated evidence
+.local/
+raw/
+processed/
+evidence/
+*.evidence.json
+data_sources.md

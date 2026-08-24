@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: real public-provider request; run explicitly with RUN_INTEGRATION=1",
+]
