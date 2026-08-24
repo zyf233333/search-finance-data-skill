@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "benchmarks": [
+    {
+      "benchmark_id": "fred_gdp",
+      "question": "Download the US GDP series from FRED and prepare a research-ready file.",
+      "dataset_id": "fred.series.GDP",
+      "provider": "fred",
+      "expected_frequency": "quarterly"
+    },
+    {
+      "benchmark_id": "french_ff3",
+      "question": "Download monthly Fama-French three factors.",
+      "dataset_id": "kenneth_french.ff3_monthly",
+      "provider": "french",
+      "expected_frequency": "monthly"
+    },
+    {
+      "benchmark_id": "sec_tickers",
+      "question": "Download the SEC company ticker and CIK reference.",
+      "dataset_id": "sec.company_tickers",
+      "provider": "sec",
+      "expected_frequency": "periodic"
+    }
+  ]
+}

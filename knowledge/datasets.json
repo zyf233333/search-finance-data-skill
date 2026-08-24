@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.1.0",
+  "datasets": [
+    {
+      "dataset_id": "kenneth_french.ff3_monthly",
+      "provider": "Kenneth R. French Data Library",
+      "dataset_name": "Fama/French 3 Factors",
+      "access_type": "public",
+      "frequency": "monthly",
+      "coverage": {"start": 1926, "end": 2025},
+      "fields": ["Mkt-RF", "SMB", "HML", "RF"],
+      "documentation_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+      "cost_tier": "A"
+    },
+    {
+      "dataset_id": "fred.series",
+      "provider": "Federal Reserve Bank of St. Louis",
+      "dataset_name": "FRED Series",
+      "access_type": "public",
+      "frequency": "varies",
+      "coverage": {"start": 1776, "end": 2025},
+      "fields": ["series_id", "date", "value"],
+      "documentation_url": "https://fred.stlouisfed.org/docs/api/fred/",
+      "cost_tier": "A",
+      "access_notes": "Public graph CSV download endpoint; the full FRED API requires an API key."
+    },
+    {
+      "dataset_id": "sec.company_tickers",
+      "provider": "U.S. Securities and Exchange Commission",
+      "dataset_name": "EDGAR Company Ticker Reference",
+      "access_type": "public",
+      "frequency": "periodic",
+      "coverage": {"start": 0, "end": 2025},
+      "fields": ["cik_str", "ticker", "title"],
+      "documentation_url": "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+      "cost_tier": "A"
+    }
+  ]
+}

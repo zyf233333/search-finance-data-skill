@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "variables": [
+    {
+      "variable_id": "firm_size",
+      "concept": "firm_size",
+      "measurement": "ln_total_assets",
+      "raw_fields": ["total_assets"],
+      "frequency": "annual",
+      "formula": "ln(total_assets)",
+      "roles": ["control"]
+    },
+    {
+      "variable_id": "ff_mkt",
+      "concept": "market_factor",
+      "measurement": "market_excess_return",
+      "raw_fields": ["Mkt-RF"],
+      "frequency": "monthly",
+      "formula": "Mkt-RF",
+      "roles": ["independent", "control"]
+    }
+  ]
+}
